@@ -16,19 +16,40 @@ export default function ChatInterface() {
         },
     ]);
 
-    const handleSendMessage = () => {
+    const handleSendMessage = async () => {
         if (input.trim()) {
-            setMessages([...messages, { role: 'user', content: input }]);
-            // Simulate AI response
-            setTimeout(() => {
-                setMessages((prev) => [
-                    ...prev,
-                    {
-                        role: 'assistant',
-                        content: 'This is a simulated response. In a real application, this would come from an AI model API call.',
+            // Add the user's message to the chat view
+            setMessages(prevMessages => [...prevMessages, { role: 'user', content: input }]);
+
+            try {
+                // Call your backend API that calls Gemini API
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                        'X-CSRF-TOKEN': document
+                            .querySelector('meta[name="csrf-token"]')
+                            ?.getAttribute('content') ?? '',
                     },
+                    body: JSON.stringify({ text: input }),
+                });
+
+                const data = await response.json();
+                console.log('Gemini API response:', data);
+
+                // Extract the text response from the first candidate
+                const textResponse = data.candidates[0].content.parts[0].text;
+
+                // Append the assistant's message to the messages state
+                setMessages(prevMessages => [
+                    ...prevMessages,
+                    { role: 'assistant', content: textResponse },
                 ]);
-            }, 1000);
+            } catch (error) {
+                console.error('Error fetching Gemini API:', error);
+            }
+
             setInput('');
         }
     };
@@ -48,18 +69,14 @@ export default function ChatInterface() {
                                 <LogIn size={16} />
                                 <span>Login</span>
                             </Button>
-
                             <Button className="mt-4 w-full justify-start gap-2 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700">
                                 <Plus size={16} />
                                 <span>New Chat</span>
                             </Button>
                         </div>
-
                         <Separator className="dark:bg-gray-800" />
-
                         <div className="flex-1 overflow-auto p-2">
                             <h2 className="px-2 py-1 text-xs font-semibold dark:text-gray-400">Recent Chats</h2>
-
                             {['Machine Learning Basics', 'JavaScript Help', 'Travel Recommendations', 'Recipe Ideas', 'Book Suggestions'].map(
                                 (chat, index) => (
                                     <Button
@@ -83,7 +100,9 @@ export default function ChatInterface() {
                                 <div key={index} className={`mb-4 flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                     <div
                                         className={`max-w-3xl rounded-lg p-3 ${
-                                            message.role === 'user' ? 'dark:bg-gray-700 dark:text-gray-100' : 'dark:bg-gray-800 dark:text-gray-100'
+                                            message.role === 'user'
+                                                ? 'dark:bg-gray-700 dark:text-gray-100'
+                                                : 'dark:bg-gray-800 dark:text-gray-100'
                                         }`}
                                     >
                                         {message.content}
