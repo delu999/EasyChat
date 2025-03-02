@@ -9,15 +9,12 @@ use Illuminate\Support\Str;
 
 class ChatController extends Controller
 {
-    /**
-     * Store user message, call Gemini, store AI response, return both.
-     */
     public function storeMessage(Request $request)
     {
         $inputText = $request->input('text');
         $sessionId = $request->input('session_id') ?? Str::uuid()->toString();
 
-        // 1. Save the user’s message
+        // Save the user's message
         $userMessage = ChatMessage::create([
             'user_id'    => auth()->id() ?? null,
             'session_id' => $sessionId,
@@ -25,10 +22,10 @@ class ChatController extends Controller
             'content'    => $inputText,
         ]);
 
-        // 2. Call Gemini to get a response text (not a full Response object)
-        $assistantResponseText = $this->callGeminiAPI($inputText);
+        // Get the assistant's response using conversation context
+        $assistantResponseText = $this->callGeminiAPIWithContext($inputText, $sessionId);
 
-        // 3. Save the assistant’s response
+        // Save the assistant's response
         $assistantMessage = ChatMessage::create([
             'user_id'    => auth()->id() ?? null,
             'session_id' => $sessionId,
@@ -36,7 +33,6 @@ class ChatController extends Controller
             'content'    => $assistantResponseText,
         ]);
 
-        // 4. Return both messages as JSON
         return response()->json([
             'userMessage'      => $userMessage,
             'assistantMessage' => $assistantMessage,
@@ -44,11 +40,30 @@ class ChatController extends Controller
     }
 
     /**
-     * Calls Gemini and returns the response text only.
+     * Build a conversation transcript from previous messages and call Gemini API.
      */
-    private function callGeminiAPI(string $inputText): string
+    private function callGeminiAPIWithContext(string $inputText, string $sessionId): string
     {
-        $apiKey = config('services.gemini.api_key'); // Make sure this is set
+        // Fetch previous conversation messages (you might limit these by count or token length)
+        $contextMessages = ChatMessage::where('session_id', $sessionId)
+            ->orderBy('created_at')
+            ->get();
+
+        // Build the conversation transcript
+        $conversation = "";
+        foreach ($contextMessages as $message) {
+            if ($message->role === 'user') {
+                $conversation .= "User: " . $message->content . "\n";
+            } else {
+                $conversation .= "Assistant: " . $message->content . "\n";
+            }
+        }
+
+        // Append the new user input
+        $conversation .= "User: " . $inputText . "\nAssistant:";
+
+        $apiKey = config('services.gemini.api_key'); // Ensure this is set in your config
+
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
         ])->post(
@@ -57,27 +72,23 @@ class ChatController extends Controller
                 'contents' => [
                     [
                         'parts' => [
-                            ['text' => $inputText]
+                            ['text' => $conversation]
                         ]
                     ]
                 ]
             ]
         );
 
-        // Convert the HTTP response to an array
         $json = $response->json();
 
-        // Safely extract the text from the first candidate
-        // If it doesn’t exist, return a default string
+        // Extract the assistant's reply from the API response
         return data_get($json, 'candidates.0.content.parts.0.text', 'No response from Gemini');
     }
 
-    /**
-     * Fetch all messages for a given session_id.
-     */
     public function getConversation(Request $request)
     {
         $sessionId = $request->input('session_id');
+
         $messages = ChatMessage::where('session_id', $sessionId)
             ->orderBy('created_at')
             ->get();
