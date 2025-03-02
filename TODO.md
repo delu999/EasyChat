@@ -1,0 +1,4 @@
+- Make text area bigger, to allow for new lines
+- implement auth
+- implement chats tabs
+- collapsable chat panel

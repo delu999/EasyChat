@@ -2,56 +2,87 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { LogIn, MessageSquare, Plus, Send } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+
+interface ChatMessage {
+    role: 'user' | 'assistant';
+    content: string;
+}
 
 export default function ChatInterface() {
+    const [sessionId, setSessionId] = useState<string>('');
     const [input, setInput] = useState('');
-    const [messages, setMessages] = useState([
-        { role: 'assistant', content: 'Hello! How can I help you today?' },
-        { role: 'user', content: 'Can you explain how machine learning works?' },
-        {
-            role: 'assistant',
-            content:
-                'Machine learning is a subset of artificial intelligence that enables systems to learn and improve from experience without being explicitly programmed. It works by developing algorithms that can receive input data and use statistical analysis to predict an output while updating outputs as new data becomes available.',
-        },
-    ]);
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
+
+    // On component mount, retrieve or create a session ID and fetch conversation history
+    useEffect(() => {
+        // 1) Retrieve or create a session ID
+        let storedSessionId = localStorage.getItem('sessionId') ?? '';
+        if (!storedSessionId) {
+            storedSessionId = 'a'; // or any method to generate a unique ID
+            localStorage.setItem('sessionId', storedSessionId);
+        }
+        setSessionId(storedSessionId);
+
+        // 2) Fetch existing conversation messages for this session
+        fetch('/chat/get-conversation', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
+            },
+            body: JSON.stringify({ session_id: storedSessionId }),
+        })
+            .then((response) => response.json())
+            .then((data: ChatMessage[]) => {
+                // data should be an array of messages from your DB
+                setMessages(data);
+            })
+            .catch((error) => {
+                console.error('Error fetching conversation:', error);
+            });
+    }, []);
 
     const handleSendMessage = async () => {
-        if (input.trim()) {
-            // Add the user's message to the chat view
-            setMessages(prevMessages => [...prevMessages, { role: 'user', content: input }]);
+        if (!input.trim()) return;
 
-            try {
-                // Call your backend API that calls Gemini API
-                const response = await fetch('/generate', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Accept: 'application/json',
-                        'X-CSRF-TOKEN': document
-                            .querySelector('meta[name="csrf-token"]')
-                            ?.getAttribute('content') ?? '',
-                    },
-                    body: JSON.stringify({ text: input }),
-                });
+        // Immediately show the user's message in the UI
+        const userMessage: ChatMessage = { role: 'user', content: input };
+        setMessages((prev) => [...prev, userMessage]);
 
-                const data = await response.json();
-                console.log('Gemini API response:', data);
+        try {
+            // Send the user message to the backend
+            const response = await fetch('/chat/store-message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
+                },
+                body: JSON.stringify({
+                    text: input,
+                    session_id: sessionId,
+                }),
+            });
 
-                // Extract the text response from the first candidate
-                const textResponse = data.candidates[0].content.parts[0].text;
+            const data = await response.json();
+            // Expecting data to contain { userMessage, assistantMessage } from the server
+            const { userMessage: savedUserMessage, assistantMessage } = data;
+            console.log(savedUserMessage);
+            // We already displayed the user message in local state, but you could update it
+            // if you need the ID or timestamps from the DB:
+            // setMessages((prev) => [...prev.slice(0, -1), savedUserMessage]);
 
-                // Append the assistant's message to the messages state
-                setMessages(prevMessages => [
-                    ...prevMessages,
-                    { role: 'assistant', content: textResponse },
-                ]);
-            } catch (error) {
-                console.error('Error fetching Gemini API:', error);
+            // Display the assistant's response
+            if (assistantMessage) {
+                setMessages((prev) => [...prev, assistantMessage]);
             }
-
-            setInput('');
+        } catch (error) {
+            console.error('Error storing message or fetching AI response:', error);
         }
+
+        setInput('');
     };
 
     return (
@@ -100,9 +131,7 @@ export default function ChatInterface() {
                                 <div key={index} className={`mb-4 flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                     <div
                                         className={`max-w-3xl rounded-lg p-3 ${
-                                            message.role === 'user'
-                                                ? 'dark:bg-gray-700 dark:text-gray-100'
-                                                : 'dark:bg-gray-800 dark:text-gray-100'
+                                            message.role === 'user' ? 'dark:bg-gray-700 dark:text-gray-100' : 'dark:bg-gray-800 dark:text-gray-100'
                                         }`}
                                     >
                                         {message.content}

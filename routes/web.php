@@ -2,19 +2,16 @@
 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use App\Http\Controllers\GeminiController;
+use App\Http\Controllers\ChatController;
 
 Route::get('/', function () {
     return Inertia::render('chat');
 })->name('chat');
 
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('dashboard', function () {
-        return Inertia::render('dashboard');
-    })->name('dashboard');
-});
+// The chat routes:
+Route::post('/chat/store-message', [ChatController::class, 'storeMessage']);
+Route::post('/chat/get-conversation', [ChatController::class, 'getConversation']);
 
-Route::post('/generate', [GeminiController::class, 'generateContent']);
 
 
 
