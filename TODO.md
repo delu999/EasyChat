@@ -15,6 +15,9 @@
 - Make text area bigger, to allow for new lines
 - Add payments
 - Add more models
+- Limit new users to 5 chats, and show it in the ui
 - Allow to modify previous chats
 - Add copy response
 - Modify title bar and icon
+- Configure logs
+- Laravel octane?
