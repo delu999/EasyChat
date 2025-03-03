@@ -2,3 +2,5 @@
 - implement auth
 - implement chats tabs
 - collapsable chat panel
+- format text received from ai
+- store in db, only chats of authenticated users.
