@@ -3,6 +3,8 @@
 [x] remove text from textarea, once the send button is clicked.
 [x] show indication that the ai is responding
 [x] format text received from ai (only markdown)
+[x] Modify app name
+- modify favicon
 - implement auth (by creating a new sign in page)
 - format latex
 - allow to rename chats
@@ -18,6 +20,5 @@
 - Limit new users to 5 chats, and show it in the ui
 - Allow to modify previous chats
 - Add copy response
-- Modify title bar and icon
 - Configure logs
 - Laravel octane?
