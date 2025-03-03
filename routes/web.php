@@ -8,7 +8,10 @@ Route::get('/', function () {
     return Inertia::render('chat');
 })->name('chat');
 
-// The chat routes:
+
+Route::post('/chat/session', [ChatController::class, 'createSession']);
+Route::get('/chat/sessions', [ChatController::class, 'getSessions']);
+
 Route::post('/chat/store-message', [ChatController::class, 'storeMessage']);
 Route::post('/chat/get-conversation', [ChatController::class, 'getConversation']);
 

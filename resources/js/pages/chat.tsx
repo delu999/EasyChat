@@ -9,23 +9,47 @@ interface ChatMessage {
     content: string;
 }
 
+interface ChatSession {
+    id: string;
+    title: string;
+}
+
 export default function ChatInterface() {
     const [sessionId, setSessionId] = useState<string>('');
     const [input, setInput] = useState('');
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
 
-    // On component mount, retrieve or create a session ID and fetch conversation history
+    // On component mount, load existing chat sessions
     useEffect(() => {
-        // 1) Retrieve or create a session ID
-        let storedSessionId = localStorage.getItem('sessionId') ?? '';
-        if (!storedSessionId) {
-            storedSessionId = 'a'; // or any method to generate a unique ID
-            localStorage.setItem('sessionId', storedSessionId);
-        }
-        setSessionId(storedSessionId);
+        fetch('/chat/sessions', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
+            },
+        })
+            .then((response) => response.json())
+            .then((data: ChatSession[]) => {
+                setChatSessions(data);
+                // If there is at least one session, load the first one
+                if (data.length > 0) {
+                    setSessionId(data[0].id);
+                    localStorage.setItem('sessionId', data[0].id);
+                    fetchConversation(data[0].id);
+                } else {
+                    // If no sessions exist, create one
+                    handleNewChat();
+                }
+            })
+            .catch((error) => {
+                console.error('Error fetching chat sessions:', error);
+            });
+    }, []);
 
-        // 2) Fetch existing conversation messages for this session
+    const fetchConversation = (session: string) => {
         fetch('/chat/get-conversation', {
             method: 'POST',
             headers: {
@@ -33,27 +57,53 @@ export default function ChatInterface() {
                 Accept: 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
             },
-            body: JSON.stringify({ session_id: storedSessionId }),
+            body: JSON.stringify({ session_id: session }),
         })
             .then((response) => response.json())
             .then((data: ChatMessage[]) => {
-                // data should be an array of messages from your DB
                 setMessages(data);
             })
             .catch((error) => {
                 console.error('Error fetching conversation:', error);
             });
-    }, []);
+    };
+
+    const handleNewChat = async () => {
+        try {
+            const response = await fetch('/chat/session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
+                },
+                body: JSON.stringify({
+                    title: 'New Chat',
+                }),
+            });
+            const newSession: ChatSession = await response.json();
+            setChatSessions((prev) => [newSession, ...prev]);
+            setSessionId(newSession.id);
+            localStorage.setItem('sessionId', newSession.id);
+            setMessages([]);
+        } catch (error) {
+            console.error('Error creating new session:', error);
+        }
+    };
+
+    const loadConversation = (newSessionId: string) => {
+        setSessionId(newSessionId);
+        localStorage.setItem('sessionId', newSessionId);
+        fetchConversation(newSessionId);
+    };
 
     const handleSendMessage = async () => {
         if (!input.trim()) return;
 
-        // Immediately show the user's message in the UI
         const userMessage: ChatMessage = { role: 'user', content: input };
         setMessages((prev) => [...prev, userMessage]);
 
         try {
-            // Send the user message to the backend
             const response = await fetch('/chat/store-message', {
                 method: 'POST',
                 headers: {
@@ -68,14 +118,7 @@ export default function ChatInterface() {
             });
 
             const data = await response.json();
-            // Expecting data to contain { userMessage, assistantMessage } from the server
-            const { userMessage: savedUserMessage, assistantMessage } = data;
-            console.log(savedUserMessage);
-            // We already displayed the user message in local state, but you could update it
-            // if you need the ID or timestamps from the DB:
-            // setMessages((prev) => [...prev.slice(0, -1), savedUserMessage]);
-
-            // Display the assistant's response
+            const { assistantMessage } = data;
             if (assistantMessage) {
                 setMessages((prev) => [...prev, assistantMessage]);
             }
@@ -93,11 +136,12 @@ export default function ChatInterface() {
     return (
         <div className={'dark flex h-screen'}>
             <div className="flex h-full w-full flex-col dark:bg-gray-900">
-                {/* Main layout */}
                 <div className="relative flex flex-1 overflow-hidden">
-                    {/* Sidebar - Hidden by default on mobile */}
+                    {/* Sidebar */}
                     <div
-                        className={`fixed z-20 flex h-full w-64 flex-shrink-0 flex-col border-r transition-all duration-300 ease-in-out md:relative dark:border-gray-800 dark:bg-gray-950 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:-translate-x-0'} ${!isSidebarOpen ? 'md:w-0 md:overflow-hidden md:border-r-0' : 'md:w-64'} `}
+                        className={`fixed z-20 flex h-full w-64 flex-shrink-0 flex-col border-r transition-all duration-300 ease-in-out md:relative dark:border-gray-800 dark:bg-gray-950 ${
+                            isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:-translate-x-0'
+                        } ${!isSidebarOpen ? 'md:w-0 md:overflow-hidden md:border-r-0' : 'md:w-64'}`}
                     >
                         <div className="p-4">
                             <Button
@@ -107,8 +151,10 @@ export default function ChatInterface() {
                                 <LogIn size={16} />
                                 <span>Login</span>
                             </Button>
-
-                            <Button className="mt-4 w-full justify-start gap-2 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700">
+                            <Button
+                                className="mt-4 w-full justify-start gap-2 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
+                                onClick={handleNewChat}
+                            >
                                 <Plus size={16} />
                                 <span>New Chat</span>
                             </Button>
@@ -118,45 +164,32 @@ export default function ChatInterface() {
 
                         <div className="custom-scrollbar flex-1 overflow-auto p-2">
                             <h2 className="px-2 py-1 text-xs font-semibold dark:text-gray-400">Recent Chats</h2>
-
-                            {[
-                                'Machine Learning Basics',
-                                'JavaScript Help',
-                                'Travel Recommendations',
-                                'Recipe Ideas',
-                                'Book Suggestions',
-                                'Career Advice',
-                                'Tech Trends',
-                                'Fitness Tips',
-                                'Language Learning',
-                                'Music Theory',
-                            ].map((chat, index) => (
-                                <Button
-                                    key={index}
-                                    variant="ghost"
-                                    className="mb-1 w-full justify-start px-2 py-2 text-left dark:text-gray-200 dark:hover:bg-gray-800"
-                                    // Removed the onClick handler that was closing the sidebar
-                                >
-                                    <MessageSquare size={16} className="mr-2 flex-shrink-0 dark:text-gray-400" />
-                                    <span className="truncate">{chat}</span>
-                                </Button>
-                            ))}
+                            {chatSessions.map((chat, index) => {
+                                const isActive = chat.id === sessionId;
+                                return (
+                                    <Button
+                                        key={index}
+                                        variant="ghost"
+                                        onClick={() => loadConversation(chat.id)}
+                                        // Conditionally apply a background color if this chat is active
+                                        className={`relative mb-1 w-full justify-start px-2 py-2 text-left dark:text-gray-200 ${isActive ? 'bg-gray-800' : 'dark:hover:bg-gray-800'}`}
+                                    >
+                                        {/* Optional decorative bar or any marker */}
+                                        {isActive && <div className="absolute top-0 left-0 h-full w-1 bg-blue-500" />}
+                                        <MessageSquare size={16} className="mr-2 flex-shrink-0 dark:text-gray-400" />
+                                        <span className="truncate">{chat.title}</span>
+                                    </Button>
+                                );
+                            })}
                         </div>
                     </div>
-
-                    {/* Overlay for mobile when sidebar is open */}
                     {isSidebarOpen && <div className="bg-opacity-50 fixed inset-0 z-10 bg-black md:hidden" onClick={() => setIsSidebarOpen(false)} />}
-
-                    {/* Chat area */}
                     <div className="flex w-full flex-1 flex-col dark:bg-gray-900">
-                        {/* Header with menu button */}
                         <div className="flex h-12 items-center border-b px-4 dark:border-gray-800">
                             <Button variant="ghost" size="icon" className="mr-2" onClick={toggleSidebar}>
                                 <Menu size={20} />
                             </Button>
                         </div>
-
-                        {/* Chat messages */}
                         <div className="custom-scrollbar flex-1 overflow-auto p-4">
                             {messages.map((message, index) => (
                                 <div key={index} className={`mb-4 flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -170,8 +203,6 @@ export default function ChatInterface() {
                                 </div>
                             ))}
                         </div>
-
-                        {/* Input area */}
                         <div className="border-t p-4 dark:border-gray-800">
                             <div className="flex items-center gap-2">
                                 <div className="relative flex-1">

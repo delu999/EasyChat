@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use App\Models\ChatMessage;
+use App\Models\ChatSession;
 use Illuminate\Support\Str;
 
 class ChatController extends Controller
@@ -94,5 +95,27 @@ class ChatController extends Controller
             ->get();
 
         return response()->json($messages);
+    }
+
+    public function createSession(Request $request)
+    {
+        $sessionId = (string) Str::uuid();
+        $chatSession = ChatSession::create([
+            'id' => $sessionId,
+            'user_id' => auth()->id() ?? null,
+            'title' => $request->input('title', 'New Chat'),
+        ]);
+
+        return response()->json($chatSession);
+    }
+
+    public function getSessions(Request $request)
+    {
+        $userId = auth()->id();
+        $sessions = ChatSession::where('user_id', $userId)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json($sessions);
     }
 }
