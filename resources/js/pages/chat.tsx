@@ -3,6 +3,8 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { LogIn, Menu, MessageSquare, Plus, Send } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface ChatMessage {
     role: 'user' | 'assistant';
@@ -14,15 +16,14 @@ export default function ChatInterface() {
     const [input, setInput] = useState('');
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-
-    // New state to track if the AI is generating a response
     const [isResponding, setIsResponding] = useState(false);
 
     // On component mount, retrieve or create a session ID and fetch conversation history
     useEffect(() => {
         let storedSessionId = localStorage.getItem('sessionId') ?? '';
         if (!storedSessionId) {
-            storedSessionId = 'a'; // or any method to generate a unique ID
+            // You could generate a unique ID with uuidv4 if preferred
+            storedSessionId = 'a';
             localStorage.setItem('sessionId', storedSessionId);
         }
         setSessionId(storedSessionId);
@@ -33,7 +34,9 @@ export default function ChatInterface() {
             headers: {
                 'Content-Type': 'application/json',
                 Accept: 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
+                'X-CSRF-TOKEN': document
+                    .querySelector('meta[name="csrf-token"]')
+                    ?.getAttribute('content') ?? '',
             },
             body: JSON.stringify({ session_id: storedSessionId }),
         })
@@ -66,7 +69,9 @@ export default function ChatInterface() {
                 headers: {
                     'Content-Type': 'application/json',
                     Accept: 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
+                    'X-CSRF-TOKEN': document
+                        .querySelector('meta[name="csrf-token"]')
+                        ?.getAttribute('content') ?? '',
                 },
                 body: JSON.stringify({
                     text: userMessage.content,
@@ -95,7 +100,7 @@ export default function ChatInterface() {
     };
 
     return (
-        <div className={'dark flex h-screen'}>
+        <div className="dark flex h-screen">
             <div className="flex h-full w-full flex-col dark:bg-gray-900">
                 {/* Main layout */}
                 <div className="relative flex flex-1 overflow-hidden">
@@ -150,7 +155,12 @@ export default function ChatInterface() {
                     </div>
 
                     {/* Overlay for mobile when sidebar is open */}
-                    {isSidebarOpen && <div className="bg-opacity-50 fixed inset-0 z-10 bg-black md:hidden" onClick={() => setIsSidebarOpen(false)} />}
+                    {isSidebarOpen && (
+                        <div
+                            className="bg-opacity-50 fixed inset-0 z-10 bg-black md:hidden"
+                            onClick={() => setIsSidebarOpen(false)}
+                        />
+                    )}
 
                     {/* Chat area */}
                     <div className="flex w-full flex-1 flex-col dark:bg-gray-900">
@@ -164,13 +174,20 @@ export default function ChatInterface() {
                         {/* Chat messages */}
                         <div className="custom-scrollbar flex-1 overflow-auto p-4">
                             {messages.map((message, index) => (
-                                <div key={index} className={`mb-4 flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                <div
+                                    key={index}
+                                    className={`mb-4 flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                                >
                                     <div
-                                        className={`max-w-3xl rounded-lg p-3 whitespace-pre-wrap ${
-                                            message.role === 'user' ? 'dark:bg-gray-700 dark:text-gray-100' : 'dark:bg-gray-800 dark:text-gray-100'
+                                        className={`max-w-3xl rounded-lg p-3 ${
+                                            message.role === 'user'
+                                                ? 'dark:bg-gray-700 dark:text-gray-100'
+                                                : 'dark:bg-gray-800 dark:text-gray-100'
                                         }`}
                                     >
-                                        {message.content}
+                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                            {message.content}
+                                        </ReactMarkdown>
                                     </div>
                                 </div>
                             ))}
@@ -178,7 +195,7 @@ export default function ChatInterface() {
                             {/* Show indication that the AI is responding */}
                             {isResponding && (
                                 <div className="mb-4 flex justify-start">
-                                    <div className="max-w-3xl rounded-lg p-3 whitespace-pre-wrap dark:bg-gray-800 dark:text-gray-100">
+                                    <div className="max-w-3xl rounded-lg p-3 dark:bg-gray-800 dark:text-gray-100">
                                         <span className="text-sm text-gray-400 italic">AI is responding...</span>
                                     </div>
                                 </div>
@@ -206,7 +223,7 @@ export default function ChatInterface() {
                                     size="icon"
                                     className="h-10 w-10 flex-shrink-0 dark:bg-gray-700 dark:hover:bg-gray-600"
                                     onClick={handleSendMessage}
-                                    disabled={isResponding} // optional, disable if you don't want repeated clicks
+                                    disabled={isResponding}
                                 >
                                     <Send size={16} className="dark:text-gray-200" />
                                 </Button>
