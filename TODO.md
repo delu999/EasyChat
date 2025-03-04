@@ -3,23 +3,31 @@
 [x] remove text from textarea, once the send button is clicked.
 [x] show indication that the ai is responding
 [x] format text received from ai (only markdown)
-[x] Modify app name
-- delete chats
+[x] modify app name
+[x] create a welcome chat, it should be a chat which introduces the website
+[x] locals storage for non auth users
+
+General:
 - modify favicon
 - implement auth (by creating a new sign in page)
-- format latex
+- Add payments
+- Add more models
+- Configure logs
+- Configure analytics
+
+Chats:
 - allow to rename chats
+- delete chats
+- add loading indicator while fetching chats
+- allow to modify previous chats
+- format latex
 - add scroll to bottom button
 - make chat panel full screen on phone
 - store in db, only chats of authenticated users.
-- create a welcome chat, it should be a chat which introduces the website
-- add loading indicator while fetching chats
-- Cache chats, somehow
 - Make text area bigger, to allow for new lines
-- Add payments
-- Add more models
-- Limit new users to 5 chats, and show it in the ui
-- Allow to modify previous chats
-- Add copy response
-- Configure logs
+- Add copy button, to copy response
+- Limit new users to 5 chats, and show it in the ui (welcome chat)
+
+Optimizations:
 - Laravel octane?
+- Cache chats?

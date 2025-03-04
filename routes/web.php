@@ -15,6 +15,7 @@ Route::get('/chat/sessions', [ChatController::class, 'getSessions']);
 
 Route::post('/chat/store-message', [ChatController::class, 'storeMessage']);
 Route::post('/chat/get-conversation', [ChatController::class, 'getConversation']);
+Route::post('/generate', [ChatController::class, 'generateContentLocal']);
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

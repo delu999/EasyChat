@@ -118,4 +118,29 @@ class ChatController extends Controller
 
         return response()->json($sessions);
     }
+
+    public function generateContentLocal(Request $request)
+    {
+        $prompt = $request->input('text');
+        $apiKey = config('services.gemini.api_key'); // Ensure this is set in your .env and config/services.php
+
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+        ])->post(
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" . $apiKey,
+            [
+                'contents' => [
+                    [
+                        'parts' => [
+                            ['text' => $prompt]
+                        ]
+                    ]
+                ]
+            ]
+        );
+
+        // Return the JSON response from Gemini directly
+        return response()->json($response->json());
+    }
+
 }
