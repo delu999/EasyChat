@@ -4,6 +4,7 @@
 [x] show indication that the ai is responding
 [x] format text received from ai (only markdown)
 [x] Modify app name
+- delete chats
 - modify favicon
 - implement auth (by creating a new sign in page)
 - format latex
