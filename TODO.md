@@ -9,6 +9,7 @@
 
 General:
 - modify favicon
+- Add delete account
 - implement auth (by creating a new sign in page)
 - Add payments
 - Add more models
