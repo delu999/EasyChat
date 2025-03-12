@@ -1,12 +1,3 @@
-[x] collapsable chat panel
-[x] implement chats tabs
-[x] remove text from textarea, once the send button is clicked.
-[x] show indication that the ai is responding
-[x] format text received from ai (only markdown)
-[x] modify app name
-[x] create a welcome chat, it should be a chat which introduces the website
-[x] locals storage for non auth users
-
 General:
 - Modify favicon
 - Add delete account
@@ -40,3 +31,13 @@ Optimizations:
 - Laravel octane?
 - Cache chats?
 - Buy servers to host models
+
+Done:
+- collapsable chat panel
+- implement chats tabs
+- remove text from textarea, once the send button is clicked.
+- show indication that the ai is responding
+- format text received from ai (only markdown)
+- modify app name
+- create a welcome chat, it should be a chat which introduces the website
+- locals storage for non auth users
