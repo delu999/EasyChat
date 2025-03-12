@@ -8,27 +8,35 @@
 [x] locals storage for non auth users
 
 General:
-- modify favicon
+- Modify favicon
 - Add delete account
-- implement auth (by creating a new sign in page)
+- Implement auth (Add new sign in page, add login button)
+- Allow auth only through github and google
 - Add payments
 - Add more models
 - Configure logs
 - Configure analytics
+- Remove all files created by the starter kit
+
 
 Chats:
-- allow to rename chats
-- delete chats
-- add loading indicator while fetching chats
-- allow to modify previous chats
-- format latex
-- add scroll to bottom button
-- make chat panel full screen on phone
-- store in db, only chats of authenticated users.
-- Make text area bigger, to allow for new lines
-- Add copy button, to copy response
-- Limit new users to 5 chats, and show it in the ui (welcome chat)
+- Store chats of authenticated users in db
+- Name new chats automatically (as soon as the first prompt is created)
+- Add button to rename chats
+- Add button to delete chats
+- Add loading indicator while fetching chats (when fetching from db)
+- Allow to modify previous chats
+- Format latex
+- Allow to add images to prompts
+- Allow to add pdfs to prompts
+- Add code blocks
+- Add scroll to bottom button
+- Make chat panel full screen on phone
+- Make text area bigger, to allow for new lines (\n)
+- Add button to copy response
+- Limit new users to 5 chats, and show it in the welcome chat
 
 Optimizations:
 - Laravel octane?
 - Cache chats?
+- Buy servers to host models
